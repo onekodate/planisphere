@@ -612,7 +612,7 @@
             fetchAPI(now.date).then(()=>{
                 planisphere(now.date,now.coor);
                 show(star_now,now.vmag);
-            });
+            }).catch(console.log("API Failed"));
         }
         const getLocation=()=>{
             navigator.geolocation.getCurrentPosition((pos)=>{
