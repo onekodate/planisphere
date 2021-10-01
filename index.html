@@ -541,7 +541,7 @@
         const openFile=()=>{
             fetch("./bsc5.dat").then(response=>response.text()).then(textData=>{
             result=textData;
-                star=bsc5(textData);
+                bsc5(textData);
                 changeDate(new Date);
             });
         };
