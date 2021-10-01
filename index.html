@@ -60,9 +60,10 @@
         <input type=range min=0.25 max=6 step=0.25 value=2 onchange="show(star_now,Number(this.value));">
         <table id=table></table>
         <p>
+		太陽系天体の座標についてはNASAのHorizons APIを利用していますが、この取得に約7秒かかります。<br>
             利用しているもの：
             <a target="_blank" href="http://tdc-www.harvard.edu/catalogs/bsc5.html">Yale Bright Star Catalog</a>, 
-            <a target="_blank" href="https://ssd-api.jpl.nasa.gov/doc/horizons.html">NASA Horisons API</a>, 
+            <a target="_blank" href="https://ssd-api.jpl.nasa.gov/doc/horizons.html">NASA Horizons API</a>, 
             <a target="_blank" href="https://d3js.org/">d3.js</a><br>
             参考にしたもの：
             <a target="_blank" href="https://observablehq.com/@mbostock/solar-path">d3.js Solar-Path</a>, 
