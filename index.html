@@ -60,7 +60,7 @@
         <input type=range min=0.25 max=6 step=0.25 value=2 onchange="show(star_now,Number(this.value));">
         <table id=table></table>
         <p>
-		太陽系天体の座標についてはNASAのHorizons APIを利用していますが、この取得に約7秒かかります。<br>
+            太陽系天体の座標についてはNASAのHorizons APIを利用していますが、この取得に約7秒かかります。<br>
             利用しているもの：
             <a target="_blank" href="http://tdc-www.harvard.edu/catalogs/bsc5.html">Yale Bright Star Catalog</a>, 
             <a target="_blank" href="https://ssd-api.jpl.nasa.gov/doc/horizons.html">NASA Horizons API</a>, 
@@ -571,16 +571,18 @@
                     const arr=result.split("\n");
                     const epharr=result.split("$$SOE")[1].split(/  */);
                     const arr1=arr[1].split(/  */);
-//                    const index=star.findIndex(v=>v.name==arr.find(v=>v.includes("Target body name")).split(/  */)[3]);
-                    star.push({
-                          id:arr.find(v=>v.includes("Target body name")).split(/  */)[4],
+                    const index=star.findIndex(v=>v.anglo==arr.find(v=>v.includes("Target body name")).split(/  */)[3]);
+                    const obj={
+                        id:arr.find(v=>v.includes("Target body name")).split(/  */)[4],
                         anglo:arr.find(v=>v.includes("Target body name")).split(/  */)[3],
                         greek:"",
                         vmag:Number(epharr[27]),
                         asce:asce(epharr.slice(3,6).join("")),
                         decl:decl(epharr.slice(6,9).join("")),
                         spec:"#fff",
-                    });
+                    };
+                    if(index==-1) star.push(obj);
+                    else star[index]=obj;
                 });
                 if(idx>targets.length-1){
                     console.log("finished");
