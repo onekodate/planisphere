@@ -13,19 +13,26 @@
                 height:100%;
                 margin:0;
                 text-align: center;
+                float:left;
+            }
+            #wrapper{
+                display: inline-block;
             }
             button,input{
-                background-color: #191b22;
+                background-color: #313543;
                 color:#9baec8;
-                border:#9baec8 1px solid;
+                border:none;
+                border-radius: 4px;
                 font-size: 16px;
             }
             .no-wrap{
                 display: inline-block;
             }
             #map{
-                height:95vw;
-                width:95vw;
+                width:800px;
+                height:800px;
+                max-height:95vw;
+                max-width:95vw;
             }
             #map svg{
                 width:100%;
@@ -36,28 +43,62 @@
                 margin-left: auto;
                 text-align: center;
             }
+            table{
+                display: inline-block;
+                max-height:930px;
+                overflow-y: scroll;
+            }
             input[type=range]{
                 width:50%;
             }
+            #table input[type=checkbox]{
+                display:none;
+            }
+            label{
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+            #table input[type=checkbox]:checked+em{
+                color:#fff;
+                font-style: normal;
+            }
+            #check{
+                width:30px;
+                height:30px;
+                display: inline;
+            }
             a{
-                color:#9baec8;
+                color:#16a5bf;
                 display: inline-block;
             }
             input[type=file]{
+                width:100px;
                 display: none;
             }
         </style>
     </head>
     <body>
-        <p>
-            <span class=no-wrap>
-                <button onclick="getLocation()">Location: </button> 
-                <b id=location>Tokyo 35.66,139.74</b></span>
-            　　　<span class=no-wrap>Date: <b id=date>Sep 23 2021 22:09</b>
-                <input type="datetime-local" onChange="changeDate(new Date(this.value));"></span>
-        </p>
-        <div id="map"></div>
-        <input type=range min=0.25 max=6 step=0.25 value=2 onchange="show(star_now,Number(this.value));">
+        <div id=wrapper>
+            <p>
+                <span class=no-wrap>
+                    <button onclick="getLocation()">Location: </button> 
+                    <b id=location>Tokyo 35.66,139.74</b></span>
+                　　　<span class=no-wrap>
+                    <button onclick="changeTime(-24);"><<</button>
+                    <button onclick="changeTime(-1);"><</button>
+                    <button onclick="changeDate(new Date);">Date:</button>
+                     <input id=datetime type="datetime-local" onChange="changeDate(new Date(this.value));">
+                    <button onclick="changeTime(1);">></button>
+                    <button onclick="changeTime(24);">>></button>
+                </span>
+            </p>
+            <div id="map"></div>
+            <p>
+                <input id=check type=checkbox onchange="document.getElementsByName('check').forEach(val=>{val.checked=this.checked});showName();">
+                <input type=range min=1 max=6 step=0.5 value=2 onchange="now.vmag=Number(this.value);showTable();">    
+            </p>    
+        </div>
         <table id=table></table>
         <p>
             太陽系天体の座標についてはNASAのHorizons APIを利用していますが、この取得に約7秒かかります。<br>
@@ -211,7 +252,7 @@
             th_dash=Math.PI+2*Math.PI*(date-new Date("2021-12-22T12:00:00Z"))/1000/60/60/24/365.2422*366.2422+coor[0]*Math.PI/180;
             // 場所 y'
             ph_dash=-Math.PI/180*(90-coor[1]);
-            star_now=star.map(val=>{
+            now.star=star.map(val=>{
                  x0y0z0=[   Math.cos(val.decl)*Math.cos(val.asce),
                             Math.cos(val.decl)*Math.sin(val.asce),
                             Math.sin(val.decl) ];
@@ -236,8 +277,28 @@
                 };
             }).sort((a,b)=>a.vmag-b.vmag);
         }
+        const showTable=()=>{
+            const data=now.star;
+            const vmag=now.vmag;
+            elem("table").innerHTML="<tr></tr>"+data.filter(val=>val.vmag<vmag&val.decl>0).map((val,idx)=>{
+                return "<tr><td>"
+                        +"<label>"
+                            +"<input type=checkbox name=check onchange='showName();' "+(elem("check").checked?"checked":"")+">"
+                            +"<em>"+val.anglo+"</em>"
+                        +"</label>"
+                    +"</td><td>"
+                        +val.greek
+                    +"</td><td>"
+                        +val.vmag
+                    +"</td></tr>";
+            }).join("");
+            showMap();
+        }
             /* D3.js */
-        const show=(data,vmag)=>{
+        const showMap=()=>{
+            const data=now.star;
+            const vmag=now.vmag;
+            const bool=now.bool;
             d3.select("#map").select("svg").remove();
             const width=600,height=600;
             const cx=width/2,cy=height/2;
@@ -265,6 +326,49 @@
                 .attr("d", path(d3.geoCircle().radius(90).center([0, 90])()))
                 .attr("fill", "#000000")
                 .attr("stroke", "#9baec8");
+/* 軸 */
+            svg.append("path")                                          // 軸線
+                .attr("d", path(d3.geoGraticule().stepMinor([15, 10])()))
+                .attr("fill", "none")
+                .attr("stroke", "#9baec8")
+                .attr("stroke-opacity", 0.2);
+/* ポインタ */
+            const focusDeclination = svg.append("circle")
+                .attr("cx", cx)
+                .attr("cy", cy)
+                .attr("fill", "none")
+                .attr("stroke", "#ffffe0");
+
+            const focusRightAscension = svg.append("line")
+                .attr("x1", cx)
+                .attr("y1", cy)
+                .attr("x2", cx)
+                .attr("y2", cy)
+                .attr("stroke", "#ffffe0");
+/* 散布図 */
+            const logi=x=>(1-2*Math.atan(x-vmag)/Math.PI)**3*1.8/vmag;
+            svg.append("g")                                             // 散布図
+                    .attr("stroke","#000")
+                .selectAll("circle")
+                .data(data)
+                .join("circle")
+                    .attr("fill",d=>d.spec)
+                    .attr("r",d=>logi(d.vmag))
+                    .attr("transform",d=>"translate("+projection([d.asce,d.decl])+")");
+                const arr=data.filter(val=>val.vmag<vmag&val.decl>0);
+                svg.append("g")                                             // 名前
+                    .attr("stroke","#fff")
+                    .attr("stroke-width",0.3)
+                    .attr("stroke-linejoin","round")
+                    .attr("fill","#fff")
+                .selectAll("text")
+                .data(bool.map(idx=>arr[idx]).filter((val,idx)=>idx<50))
+                .join("text")
+                    .attr("dy","-1em")
+                    .attr("font-weight","medium")
+                    .attr("font-size",d=>logi(d.vmag)*3)
+                    .text(d=>d.anglo!=""?d.anglo:d.greek)
+                    .attr("transform",d=>"translate("+projection([d.asce,d.decl])+")");
 /* 円周軸ラベル */
             const xAxis = g => g                    // 外周軸
                 .call(g => g.append("g")
@@ -314,36 +418,8 @@
                     .attr("y", ([, y]) => y));
             svg.append("g")
                 .call(yAxis);
-/* 放射軸 */
-            svg.append("path")                                          // 放射線
-                .attr("d", path(d3.geoGraticule().stepMinor([15, 10])()))
-                .attr("fill", "none")
-                .attr("stroke", "#9baec8")
-                .attr("stroke-opacity", 0.2);
-/* ポインタ */
-            const focusDeclination = svg.append("circle")
-                .attr("cx", cx)
-                .attr("cy", cy)
-                .attr("fill", "none")
-                .attr("stroke", "yellow");
-
-            const focusRightAscension = svg.append("line")
-                .attr("x1", cx)
-                .attr("y1", cy)
-                .attr("x2", cx)
-                .attr("y2", cy)
-                .attr("stroke", "yellow");
-/* 散布図 */
-            const logi=x=>(1-2*Math.atan(x-vmag)/Math.PI)**3*1.8/vmag;
-            svg.append("g")                                             // 散布図
-                .selectAll("circle")
-                .data(data)
-                .join("circle")
-                    .attr("fill",d=>d.spec)
-                    .attr("r",d=>logi(d.vmag))
-                    .attr("transform",d=>"translate("+projection([d.asce,d.decl])+")");
 /* Mouseover */
-            const voronoi = d3.Delaunay.from(data.filter(val=>val.vmag<vmag+0.5).map(val=>[val.asce,val.decl]).map(projection)).voronoi([0,0,width,height]);
+            const voronoi = d3.Delaunay.from(data.filter(val=>val.vmag<vmag).map(val=>[val.asce,val.decl]).map(projection)).voronoi([0,0,width,height]);
             const mouseovered=(event, d)=>{
                 const pxy = projection([d.asce,d.decl]);
                 const dx = pxy[0] - cx;
@@ -360,7 +436,7 @@
                 .attr("pointer-events", "all")
                 .attr("fill", "none")
                 .selectAll("path")
-                .data(data.filter(val=>val.vmag<vmag+0.5))
+                .data(data.filter(val=>val.vmag<vmag))
                 .join("path")
                 .on("mouseover", mouseovered)
                 .on("mouseout", mouseouted)
@@ -368,10 +444,7 @@
                 .append("title")
                 .text(d=>d.anglo+", "+d.greek+", "+d.vmag);
 /* Table */
-            elem("table").innerHTML=data.filter(val=>val.decl>0&val.vmag<vmag+0.5).map(val=>{
-                return "<tr><td>"+val.anglo+"</td><td>"+val.greek+"</td><td>"+val.vmag+"</td></tr>";
-            }).join("");
-            return svg.node();
+            console.log("Refleshed");
         };
 /* File */
         var result,planet=[],moon=[],star=[],interval;
@@ -405,8 +478,17 @@
         };
         const bsc5=(result)=>{
             if(!Array.isArray(star)) star=[]; 
-            const english = {"alp CMa":"Sirius","alp Car":"Canopus","alp Cen":"Rigil Kentaurus & Toliman","alp Boo":"Arcturus","alp Lyr":"Vega","alp Aur":"Capella","bet Ori":"Rigel","alp CMi":"Procyon","alp Ori":"Betelgeuse","alp Eri":"Achernar","bet Cen":"Hadar","alp Aql":"Altair","alp Cru":"Acrux","alp Tau":"Aldebaran","alp Sco":"Antares","alp Vir":"Spica","bet Gem":"Pollux","alp PsA":"Fomalhaut","alp Cyg":"Deneb","bet Cru":"Mimosa","alp Leo":"Regulus","eps CMa":"Adhara","alp Gem":"Castor","lam Sco":"Shaula","gam Cru":"Gacrux","gam Ori":"Bellatrix","bet Tau":"Elnath","bet Car":"Miaplacidus","eps Ori":"Alnilam","alp Gru":"Alnair","eps UMa":"Alioth","zet Ori":"Alnitak","alp UMa":"Dubhe","alp Per":"Mirfak","gam Vel":"Regor","del CMa":"Wezen","the Sco":"Sargas","eps Sgr":"Kaus Australis","eps Car":"Avior","eta UMa":"Alkaid","bet Aur":"Menkalinan","alp Pav":"Peacock","alp TrA":"Atria","gam Gem":"Alhena","del Vel":"Alsephina","bet CMa":"Mirzam","alp Hya":"Alphard","gam Leo":"Algieba","alp Ari":"Hamal","bet Cet":"Diphda","alp UMi":"Polaris","the Cen":"Menkent","bet And":"Mirach","alp And":"Alpheratz","kap Ori":"Saiph","sig Sgr":"Nunki","alp Oph":"Rasalhague","bet UMi":"Kochab","gam And":"Almach","bet Gru":"Tiaki","bet Per":"Algol","bet Leo":"Denebola","gam Cen":"Muhlifain","lam Vel":"Suhail","zet UMa":"Mizar","gam Cyg":"Sadr","gam Dra":"Eltanin","alp Cas":"Schedar","alp CrB":"Alphecca","zet Pup":"Naos","iot Car":"Aspidiske","bet Cas":"Caph","alp Lup":"alp Lup","eps Sco":"Larawag","eps Cen":"eps Cen","eta Cen":"eta Cen","del Sco":"Dschubba","bet UMa":"Merak","alp Phe":"Ankaa","kap Sco":"Girtab","eps Boo":"Izar","eps Peg":"Enif","gam Cas":"gam Cas","del Ori":"Mintaka","bet Peg":"Scheat","eta Oph":"Sabik","gam UMa":"Phecda","eta Cma":"Aludra","alp Cep":"Alderamin","alp Peg":"Markeb","eps Cyg":"Aljanah","bet Sco":"Acrab"};
-            const letters = {alp: "α", bet: "β", gam: "γ", del: "δ", eps: "ε", zet: "ζ", eta: "η", the: "θ", iot: "ι", kap: "κ", lam: "λ", mu: "μ", nu: "ν", xi: "ξ", omi: "ο", pi: "π", ro: "ρ", sig: "σ", tau: "τ", ups: "υ", phi: "φ", chi: "χ", psi: "ψ", omg: "ω"};
+            const english = {"alp CMa":"Sirius","alp Car":"Canopus","alp Cen":"Rigil Kentaurus & Toliman","alp Boo":"Arcturus","alp Lyr":"Vega","alp Aur":"Capella","bet Ori":"Rigel","alp CMi":"Procyon","alp Ori":"Betelgeuse","alp Eri":"Achernar",
+                "bet Cen":"Hadar","alp Aql":"Altair","alp Cru":"Acrux","alp Tau":"Aldebaran","alp Sco":"Antares","alp Vir":"Spica","bet Gem":"Pollux","alp PsA":"Fomalhaut","alp Cyg":"Deneb","bet Cru":"Mimosa","alp Leo":"Regulus","eps CMa":"Adhara",
+                "alp Gem":"Castor","lam Sco":"Shaula","gam Cru":"Gacrux","gam Ori":"Bellatrix","bet Tau":"Elnath","bet Car":"Miaplacidus","eps Ori":"Alnilam","alp Gru":"Alnair","eps UMa":"Alioth","zet Ori":"Alnitak","alp UMa":"Dubhe","alp Per":"Mirfak",
+                "gam Vel":"Regor","del CMa":"Wezen","the Sco":"Sargas","eps Sgr":"Kaus Australis","eps Car":"Avior","eta UMa":"Alkaid","bet Aur":"Menkalinan","alp Pav":"Peacock","alp TrA":"Atria","gam Gem":"Alhena","del Vel":"Alsephina","bet CMa":"Mirzam",
+                "alp Hya":"Alphard","gam Leo":"Algieba","alp Ari":"Hamal","bet Cet":"Diphda","alp UMi":"Polaris","the Cen":"Menkent","bet And":"Mirach","alp And":"Alpheratz","kap Ori":"Saiph","sig Sgr":"Nunki","alp Oph":"Rasalhague","bet UMi":"Kochab",
+                "gam And":"Almach","bet Gru":"Tiaki","bet Per":"Algol","bet Leo":"Denebola","gam Cen":"Muhlifain","lam Vel":"Suhail","zet UMa":"Mizar","gam Cyg":"Sadr","gam Dra":"Eltanin","alp Cas":"Schedar","alp CrB":"Alphecca","zet Pup":"Naos",
+                "iot Car":"Aspidiske","bet Cas":"Caph","eps Sco":"Larawag","del Sco":"Dschubba","bet UMa":"Merak","alp Phe":"Ankaa","kap Sco":"Girtab","eps Boo":"Izar","eps Peg":"Enif",
+                "del Ori":"Mintaka","bet Peg":"Scheat","eta Oph":"Sabik","gam UMa":"Phecda","eta Cma":"Aludra","alp Cep":"Alderamin","alp Peg":"Markeb","eps Cyg":"Aljanah","bet Sco":"Acrab"};
+            const letters = {alp: "α", bet: "β", gam: "γ", del: "δ", eps: "ε", zet: "ζ", eta: "η", the: "θ", iot: "ι", 
+                kap: "κ", lam: "λ", mu: "μ", nu: "ν", xi: "ξ", omi: "ο", pi: "π", rho: "ρ", sig: "σ", tau: "τ", ups: "υ", 
+                phi: "φ", chi: "χ", psi: "ψ", ome: "ω"};
             const genitiv = {And: "Andromedae", Ant: "Antliae", Aps: "Apodis", Aqr: "Aquarii", Aql: "Aquilae", Ara: "Arae", Ari: "Arietis", Aur: "Aurigae", Boo: "Boötis", Cae: "Caeli", Cam: "Camelopardalis", Cnc: "Cancri", CVn: "Canum Venaticorum", CMa: "Canis Majoris", CMi: "Canis Minoris", Cap: "Capricorni", Car: "Carinae", Cas: "Cassiopeiae", Cen: "Centauri", Cep: "Cephei", Cet: "Ceti", Cha: "Chamaeleontis", Cir: "Circini", Col: "Columbae", Com: "Comae Berenices", CrA: "Coronae Australis", CrB: "Coronae Borealis", Crv: "Corvi", Crt: "Crateris", Cru: "Crucis", Cyg: "Cygni", Del: "Delphini", Dor: "Doradus", Dra: "Draconis", Equ: "Equulei", Eri: "Eridani", For: "Fornacis", Gem: "Geminorum", Gru: "Gruis", Her: "Herculis", Hor: "Horologii", Hya: "Hydrae", Hyi: "Hydri", Ind: "Indi", Lac: "Lacertae", Leo: "Leonis", LMi: "Leonis Minoris", Lep: "Leporis", Lib: "Librae", Lup: "Lupi", Lyn: "Lyncis", Lyr: "Lyrae", Men: "Mensae", Mic: "Microscopii", Mon: "Monocerotis", Mus: "Muscae", Nor: "Normae", Oct: "Octantis", Oph: "Ophiuchi", Ori: "Orionis", Pav: "Pavonis", Peg: "Pegasi", Per: "Persei", Phe: "Phoenicis", Pic: "Pictoris", Psc: "Piscium", PsA: "Piscis Austrini", Pup: "Puppis", Pyx: "Pyxidis", Ret: "Reticuli", Sge: "Sagittae", Sgr: "Sagittarii", Sco: "Scorpii", Scl: "Sculptoris", Sct: "Scuti", Ser: "Serpentis", Sex: "Sextantis", Tau: "Tauri", Tel: "Telescopii", Tri: "Trianguli", TrA: "Trianguli Australis", Tuc: "Tucanae", UMa: "Ursae Majoris", UMi: "Ursae Minoris", Vel: "Velorum", Vir: "Virginis", Vol: "Volantis", Vul: "Vulpeculae"};
             const greek=(str)=>(str.includes(" ")?letters[str.split(/ +/)[0]]+" "+genitiv[str.split(/ +/)[1]]:"");
             const anglo=(str)=>(Object.keys(english).includes(str)?english[str]:"");
@@ -544,7 +626,7 @@
             result=textData;
                 bsc5(textData);
                 changeDate(new Date);
-            });
+            }).catch(()=>console.log("Failed to fetch files."));
         };
         const fetchAPI=(date)=>{
             const s_date=                            date.toISOString().replace("T"," ").replace(/:\d\d\..*Z/,"");
@@ -590,15 +672,16 @@
                     clearInterval(interval);
                 } 
             },1000);
-            })
+            });
         };
 
 /* Time and Location */
-        var star_now=[];
         const now={
             date:new Date,
             coor:[35+39/60+29.1572/60/60,139+44/60+28.8869/60/60],
             vmag:2,
+            bool:[],
+            star:[],
         };
         const changeTime=(num)=>{
             now.date.setHours(now.date.getHours()+num);
@@ -606,12 +689,20 @@
         }
         const changeDate=(date)=>{
             now.date=date;
-            elem("date").innerText=String(date).slice(4,21);
+            elem("datetime").value=date.toLocaleString("ja",{
+                hour12:false,
+                year:"numeric",
+                month:"2-digit",
+                day:"2-digit",
+                hour:"2-digit",
+                minute:"2-digit",
+            }).replace(/\//g,"-").replace(" ","T");
+//            elem("date").innerText=String(date).slice(4,21);
             planisphere(now.date,now.coor);
-            show(star_now,now.vmag);
+            showTable();
             fetchAPI(now.date).then(()=>{
                 planisphere(now.date,now.coor);
-                show(star_now,now.vmag);
+                showTable();
             }).catch(()=>console.log("API Failed"));
         }
         const getLocation=()=>{
@@ -621,6 +712,15 @@
                 changeDate(new Date);
             },(error)=>error==1?console.log("Access Denied"):console.log("Please Try Again"));
         };
+        const showName=()=>{
+            now.bool=Array.from(document.getElementsByName("check")).map((val,idx)=>{
+                return {
+                    bool:val.checked,
+                    idx:idx,
+                };
+            }).filter(val=>val.bool).map(val=>val.idx);
+            showMap();
+        }
 /* Start */
         openFile();
 /* Garbage */
