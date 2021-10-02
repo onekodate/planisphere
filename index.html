@@ -1,743 +1,799 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset=utf-8>
-        <title>Planisphere</title>
-        <style>
-            html{
-                background-color: #191b22;
-                color:#9baec8;
-            }
-            body{
-                width:100%;
-                height:100%;
-                margin:0;
-                text-align: center;
-                float:left;
-            }
-            #wrapper{
-                display: inline-block;
-            }
-            button,input{
-                background-color: #313543;
-                color:#9baec8;
-                border:none;
-                border-radius: 4px;
-                font-size: 16px;
-            }
-            .no-wrap{
-                display: inline-block;
-            }
-            #map{
-                width:800px;
-                height:800px;
-                max-height:95vw;
-                max-width:95vw;
-            }
-            #map svg{
-                width:100%;
-                height:100%;
-            }
-            p,table,div{
-                margin-right: auto;
-                margin-left: auto;
-                text-align: center;
-            }
-            table{
-                display: inline-block;
-                max-height:930px;
-                overflow-y: scroll;
-            }
-            input[type=range]{
-                width:50%;
-            }
-            #table input[type=checkbox]{
-                display:none;
-            }
-            label{
-                display: block;
-                width: 100%;
-                height: 100%;
-            }
-            #table input[type=checkbox]:checked+em{
-                color:#fff;
-                font-style: normal;
-            }
-            #check{
-                width:30px;
-                height:30px;
-                display: inline;
-            }
-            a{
-                color:#16a5bf;
-                display: inline-block;
-            }
-            input[type=file]{
-                width:100px;
-                display: none;
-            }
-        </style>
-    </head>
-    <body>
-        <div id=wrapper>
-            <p>
-                <span class=no-wrap>
-                    <button onclick="getLocation()">Location: </button> 
-                    <b id=location>Tokyo 35.66,139.74</b></span>
-                　　　<span class=no-wrap>
-                    <button onclick="changeTime(-24);"><<</button>
-                    <button onclick="changeTime(-1);"><</button>
-                    <button onclick="changeDate(new Date);">Date:</button>
-                     <input id=datetime type="datetime-local" onChange="changeDate(new Date(this.value));">
-                    <button onclick="changeTime(1);">></button>
-                    <button onclick="changeTime(24);">>></button>
-                </span>
-            </p>
-            <div id="map"></div>
-            <p>
-                <input id=check type=checkbox onchange="document.getElementsByName('check').forEach(val=>{val.checked=this.checked});showName();">
-                <input type=range min=1 max=6 step=0.5 value=2 onchange="now.vmag=Number(this.value);showTable();">    
-            </p>    
-        </div>
-        <table id=table></table>
-        <p>
-            太陽系天体の座標についてはNASAのHorizons APIを利用していますが、この取得に約7秒かかります。<br>
-            利用しているもの：
-            <a target="_blank" href="http://tdc-www.harvard.edu/catalogs/bsc5.html">Yale Bright Star Catalog</a>, 
-            <a target="_blank" href="https://ssd-api.jpl.nasa.gov/doc/horizons.html">NASA Horizons API</a>, 
-            <a target="_blank" href="https://d3js.org/">d3.js</a><br>
-            参考にしたもの：
-            <a target="_blank" href="https://observablehq.com/@mbostock/solar-path">d3.js Solar-Path</a>, 
-            <a target="_blank" href="https://observablehq.com/@mbostock/star-map">d3.js Star-Map</a>, 
-            <a target="_blank" href="https://zwxadz.hateblo.jp/entry/2017/05/02/065537">色温度からRGBに変換</a>, 
-            <a target="_blank" href="http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html">座標変換</a>, 
-            <a target="_blank" href="https://ssd.jpl.nasa.gov/planets/approx_pos.html">軌道計算</a>, 
-            <a target="_blank" href="https://stdkmd.net/ssg/">太陽系の天体の位置</a>, 
-            <a target="_blank" href="http://simbad.u-strasbg.fr/simbad/">SIMBAD</a>
-            <br>
-            <a target="_blank" href="https://github.com/onekodate/planisphere">ソースコード</a>, 
-            <a target="_blank" href="https://mstdn.beer/@onekodate">連絡先</a>
-            <input type=file id=file onChange="loadFile();">
-        </p>
-
-    </body>
-    <a id=download></a>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script>
+	<head>
+		<meta charset=utf-8>
+		<title>Planisphere</title>
+		<style>
+			html{
+				background-color: #191b22;
+				color:#9baec8;
+			}
+			body{
+				width:100%;
+				height:100%;
+				margin:0;
+				text-align: center;
+				float:left;
+			}
+			#wrapper{
+				display: inline-block;
+			}
+			button,input{
+				background-color: #313543;
+				color:#9baec8;
+				border:none;
+				border-radius: 4px;
+				font-size: 16px;
+			}
+			.no-wrap{
+				display: inline-block;
+			}
+			#map{
+				width:800px;
+				height:800px;
+				max-height:95vw;
+				max-width:95vw;
+			}
+			#map svg{
+				width:100%;
+				height:100%;
+			}
+			p,table,div{
+				margin-right: auto;
+				margin-left: auto;
+				text-align: center;
+			}
+			table{
+				display: inline-block;
+				max-height:930px;
+				overflow-y: scroll;
+			}
+			input[type=range]{
+				width:50%;
+			}
+			#table input[type=checkbox]{
+				display:none;
+			}
+			label{
+				display: block;
+				width: 100%;
+				height: 100%;
+			}
+			#table input[type=checkbox]:checked+em{
+				color:#fff;
+				font-style: normal;
+			}
+			#check{
+				width:30px;
+				height:30px;
+				display: inline;
+			}
+			a{
+				color:#16a5bf;
+				display: inline-block;
+			}
+			input[type=file]{
+				width:100px;
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<div id=wrapper>
+			<p>
+				<span class=no-wrap>
+					<button onclick="getLocation()">Location: </button>
+					<b id=location>Tokyo 35.66,139.74</b></span>
+				　　　<span class=no-wrap>
+					<button onclick="changeTime(-24);"><<</button>
+					<button onclick="changeTime(-1);"><</button>
+					<button onclick="changeDate(new Date);">Date:</button>
+					 <input id=datetime type="datetime-local" onChange="changeDate(new Date(this.value));">
+					<button onclick="changeTime(1);">></button>
+					<button onclick="changeTime(24);">>></button>
+				</span>
+			</p>
+			<div id="map"></div>
+			<p>
+				<input id=check type=checkbox onchange="document.getElementsByName('check').forEach(val=>{val.checked=this.checked});showName();">
+				<input type=range min=1 max=6 step=0.5 value=2 onchange="now.vmag=Number(this.value);showTable();">
+			</p>
+		</div>
+		<table id=table></table>
+		<p>
+			太陽系天体の座標についてはNASAのHorizons APIを利用していますが、この取得に約7秒かかります。<br>
+			利用しているもの：
+			<a target="_blank" href="http://tdc-www.harvard.edu/catalogs/bsc5.html">Yale Bright Star Catalog</a>,
+			<a target="_blank" href="https://ssd-api.jpl.nasa.gov/doc/horizons.html">NASA Horizons API</a>,
+			<a target="_blank" href="https://d3js.org/">d3.js</a><br>
+			参考にしたもの：
+			<a target="_blank" href="https://observablehq.com/@mbostock/solar-path">d3.js Solar-Path</a>,
+			<a target="_blank" href="https://observablehq.com/@mbostock/star-map">d3.js Star-Map</a>,
+			<a target="_blank" href="https://zwxadz.hateblo.jp/entry/2017/05/02/065537">色温度からRGBに変換</a>,
+			<a target="_blank" href="http://fnorio.com/0098spherical_trigonometry1/spherical_trigonometry1.html">座標変換</a>,
+			<a target="_blank" href="https://ssd.jpl.nasa.gov/planets/approx_pos.html">軌道計算</a>,
+			<a target="_blank" href="https://stdkmd.net/ssg/">太陽系の天体の位置</a>,
+			<a target="_blank" href="http://simbad.u-strasbg.fr/simbad/">SIMBAD</a>
+			<br>
+			<a target="_blank" href="https://github.com/onekodate/planisphere">ソースコード</a>,
+			<a target="_blank" href="https://mstdn.beer/@onekodate">連絡先</a>
+			<input type=file id=file onChange="loadFile();">
+		</p>
+	</body>
+	<a id=download></a>
+	<script src="https://d3js.org/d3.v7.min.js"></script>
+	<script>
 		const elem=(id)=>document.getElementById(id);
-        const theta=(x,y)=>{
-            const th= x>0  ? Math.asin(y/Math.sqrt(x**2+y**2))
-                        :y>0? Math.acos(x/Math.sqrt(x**2+y**2))
-                            : Math.PI-Math.asin(y/Math.sqrt(x**2+y**2));
-            return th>0?th:th+2*Math.PI;
-        };
-
+		const theta=(x,y)=>{
+			const th= x>0  ? Math.asin(y/Math.sqrt(x**2+y**2))
+						:y>0? Math.acos(x/Math.sqrt(x**2+y**2))
+							: Math.PI-Math.asin(y/Math.sqrt(x**2+y**2));
+			return th>0?th:th+2*Math.PI;
+		};
 /* Planisphere */
 /*
-        const kepler2planet=(date)=>{
-    /* Keplerian to Planet Coordinates 
-            const c_year=(date-new Date("2000-01-01T12:00:00Z"))/1000/60/60/24/36525;
-            const planet_coords=planet.map(val=>{
-                const v={a:0,e:0,i:0,l:0,w:0,o:0,m:0,E:0,x:0,y:0};
-                ["a","e","i","l","w","o"].forEach(key=>{
-                    v[key]=(val[key][1]*c_year+val[key][0]);
-                });
-                v.m=v.l-v.w;
-                v.E=v.m;
-                while(true){
-                    const del_E=(v.m-(v.E-v.e*Math.sin(v.E)))/(1-v.e*Math.cos(v.E));
-                    v.E=v.E+del_E;
-                    if(del_E<1e-6) break;
-                }
-                v.x=v.a*(Math.cos(v.E)-v.e);
-                v.y=v.a*Math.sqrt(1-v.e**2)*Math.sin(v.E);
-                const cw=Math.cos(v.w-v.o);
-                const sw=Math.sin(v.w-v.o);
-                const co=Math.cos(v.o);
-                const so=Math.sin(v.o);
-                const ci=Math.cos(v.i);
-                const si=Math.sin(v.i);
-                return {
-                    name:val.name,
-                    coor:[  (cw*co-sw*so*ci)*v.x+(-sw*co-cw*so*ci)*v.y,
-                            (cw*so+sw*co*ci)*v.x+(-sw*so+cw*co*ci)*v.y,
-                            sw*si*v.x+cw*si*v.y],
-                };
-            });
-            planet_coords.push({
-                name:"Sun",
-                coor:[0,0,0],
-            });
-            d3.select("#map").select("svg").remove();
-            charts=(()=>{
-                const height=600,width=600;
-                const margin={
-                    top:0,
-                    right:0,
-                    bottom:0,
-                    left:0,
-                };
-                const zoom=2;
-                const x=d3.scaleLinear()
-                            .domain([-zoom,zoom])
-                            .range([margin.left,width-margin.right]);
-                const y=d3.scaleLinear()
-                            .domain([-zoom,zoom])
-                            .range([height-margin.bottom,margin.top]);
-                const xAxis=g=>g
-                    .attr("transform","translate(0,"+String(height-margin.bottom)+")")
-                    .call(d3.axisBottom(x).ticks(10));
-                const yAxis=g=>g
-                    .attr("transform","translate("+String(margin.left)+",0)")
-                    .call(d3.axisLeft(y).ticks(10));
-                const svg=d3.select("#map")
-                    .append("svg")
-                    .attr("viewBox",[0,0,width,height]);
-                svg.append("g")
-                    .call(xAxis);
-                svg.append("g")
-                    .call(yAxis);
-                const path=svg.append("g")
-                    .selectAll("circle")
-                    .data(planet_coords.map(val=>val.coor.slice(0,2)))
-                    .enter()
-                    .append("circle")
-                        .attr("cx",d=>x(d[0]))
-                        .attr("cy",d=>y(d[1]))
-                        .attr("fill","steelblue")
-                        .attr("r",4)
-                return svg.node();
-            })();
-
-    /* Moon Coordinate 
-            const bary_coor=planet_coords.splice(2,1)[0].coor;
-            const moon_coor=(()=>{
-                const arr=moon.filter(val=>Math.abs(val.date-date)/1000/60/60/24<1);
-                const v={a:0,e:0,i:0,l:0,w:0,o:0,E:0,x:0,y:0};
-                ["a","e","i","E","w","o"].forEach(key=>{
-                        v[key]=arr.reduce((acc,cur)=>acc+cur[key]*Math.abs(cur.date-date)/1000/60/60/24,0);
-                });
-                v.x=v.a*(Math.cos(v.E)-v.e);
-                v.y=v.a*Math.sqrt(1-v.e**2)*Math.sin(v.E);
-                const cw=Math.cos(v.w);
-                const sw=Math.sin(v.w);
-                const co=Math.cos(v.o);
-                const so=Math.sin(v.o);
-                const ci=Math.cos(v.i);
-                const si=Math.sin(v.i);
-                return [  (cw*co-sw*so*ci)*v.x+(-sw*co-cw*so*ci)*v.y,
-                            (cw*so+sw*co*ci)*v.x+(-sw*so+cw*co*ci)*v.y,
-                            sw*si*v.x+cw*si*v.y];
-            })();
-            planet_coords.push({
-                name:"Moon",
-                coor:bary_coor.map((val,idx)=>val+moon_coor[idx]),
-            });
-    /* Planet Argument 
-            const earth_coor=bary_coor.map((val,idx)=>val-0.0123*moon_coor[idx]);
-            planet_coords.forEach(val=>{
-                const coor=val.coor.map((v,i)=>v-earth_coor[i]);
-                const index=star.findIndex(v=>v.name==val.name);
-                star[index].decl=Math.asin(coor[2]/Math.sqrt(coor.reduce((acc,cur)=>acc+cur**2,0)));
-                star[index].asce=theta(coor[0],coor[1]);
-            });
-        }
+		const kepler2planet=(date)=>{
+	/* Keplerian to Planet Coordinates
+			const c_year=(date-new Date("2000-01-01T12:00:00Z"))/1000/60/60/24/36525;
+			const planet_coords=planet.map(val=>{
+				const v={a:0,e:0,i:0,l:0,w:0,o:0,m:0,E:0,x:0,y:0};
+				["a","e","i","l","w","o"].forEach(key=>{
+					v[key]=(val[key][1]*c_year+val[key][0]);
+				});
+				v.m=v.l-v.w;
+				v.E=v.m;
+				while(true){
+					const del_E=(v.m-(v.E-v.e*Math.sin(v.E)))/(1-v.e*Math.cos(v.E));
+					v.E=v.E+del_E;
+					if(del_E<1e-6) break;
+				}
+				v.x=v.a*(Math.cos(v.E)-v.e);
+				v.y=v.a*Math.sqrt(1-v.e**2)*Math.sin(v.E);
+				const cw=Math.cos(v.w-v.o);
+				const sw=Math.sin(v.w-v.o);
+				const co=Math.cos(v.o);
+				const so=Math.sin(v.o);
+				const ci=Math.cos(v.i);
+				const si=Math.sin(v.i);
+				return {
+					name:val.name,
+					coor:[  (cw*co-sw*so*ci)*v.x+(-sw*co-cw*so*ci)*v.y,
+							(cw*so+sw*co*ci)*v.x+(-sw*so+cw*co*ci)*v.y,
+							sw*si*v.x+cw*si*v.y],
+				};
+			});
+			planet_coords.push({
+				name:"Sun",
+				coor:[0,0,0],
+			});
+			d3.select("#map").select("svg").remove();
+			charts=(()=>{
+				const height=600,width=600;
+				const margin={
+					top:0,
+					right:0,
+					bottom:0,
+					left:0,
+				};
+				const zoom=2;
+				const x=d3.scaleLinear()
+							.domain([-zoom,zoom])
+							.range([margin.left,width-margin.right]);
+				const y=d3.scaleLinear()
+							.domain([-zoom,zoom])
+							.range([height-margin.bottom,margin.top]);
+				const xAxis=g=>g
+					.attr("transform","translate(0,"+String(height-margin.bottom)+")")
+					.call(d3.axisBottom(x).ticks(10));
+				const yAxis=g=>g
+					.attr("transform","translate("+String(margin.left)+",0)")
+					.call(d3.axisLeft(y).ticks(10));
+				const svg=d3.select("#map")
+					.append("svg")
+					.attr("viewBox",[0,0,width,height]);
+				svg.append("g")
+					.call(xAxis);
+				svg.append("g")
+					.call(yAxis);
+				const path=svg.append("g")
+					.selectAll("circle")
+					.data(planet_coords.map(val=>val.coor.slice(0,2)))
+					.enter()
+					.append("circle")
+						.attr("cx",d=>x(d[0]))
+						.attr("cy",d=>y(d[1]))
+						.attr("fill","steelblue")
+						.attr("r",4)
+				return svg.node();
+			})();
+	/* Moon Coordinate
+			const bary_coor=planet_coords.splice(2,1)[0].coor;
+			const moon_coor=(()=>{
+				const arr=moon.filter(val=>Math.abs(val.date-date)/1000/60/60/24<1);
+				const v={a:0,e:0,i:0,l:0,w:0,o:0,E:0,x:0,y:0};
+				["a","e","i","E","w","o"].forEach(key=>{
+						v[key]=arr.reduce((acc,cur)=>acc+cur[key]*Math.abs(cur.date-date)/1000/60/60/24,0);
+				});
+				v.x=v.a*(Math.cos(v.E)-v.e);
+				v.y=v.a*Math.sqrt(1-v.e**2)*Math.sin(v.E);
+				const cw=Math.cos(v.w);
+				const sw=Math.sin(v.w);
+				const co=Math.cos(v.o);
+				const so=Math.sin(v.o);
+				const ci=Math.cos(v.i);
+				const si=Math.sin(v.i);
+				return [  (cw*co-sw*so*ci)*v.x+(-sw*co-cw*so*ci)*v.y,
+							(cw*so+sw*co*ci)*v.x+(-sw*so+cw*co*ci)*v.y,
+							sw*si*v.x+cw*si*v.y];
+			})();
+			planet_coords.push({
+				name:"Moon",
+				coor:bary_coor.map((val,idx)=>val+moon_coor[idx]),
+			});
+	/* Planet Argument
+			const earth_coor=bary_coor.map((val,idx)=>val-0.0123*moon_coor[idx]);
+			planet_coords.forEach(val=>{
+				const coor=val.coor.map((v,i)=>v-earth_coor[i]);
+				const index=star.findIndex(v=>v.name==val.name);
+				star[index].decl=Math.asin(coor[2]/Math.sqrt(coor.reduce((acc,cur)=>acc+cur**2,0)));
+				star[index].asce=theta(coor[0],coor[1]);
+			});
+		}
 */
-    /* Rotation according to Location */
-        const planisphere=(date,coor)=>{
-            c_year=(date-new Date("2000-01-01T12:00:00Z"))/1000/60/60/24/36525;
-            // 自転軸の傾き y
-            oblique=0;//(84381.406-46.836768*c_year-0.00059*c_year**2+0.001813*c_year**3)/60/60/180*Math.PI;
-            // 自転 z'
-            th_dash=Math.PI+2*Math.PI*(date-new Date("2021-12-22T12:00:00Z"))/1000/60/60/24/365.2422*366.2422+coor[0]*Math.PI/180;
-            // 場所 y'
-            ph_dash=-Math.PI/180*(90-coor[1]);
-            now.star=star.map(val=>{
-                 x0y0z0=[   Math.cos(val.decl)*Math.cos(val.asce),
-                            Math.cos(val.decl)*Math.sin(val.asce),
-                            Math.sin(val.decl) ];
-                 x0y1z1=[   Math.cos(oblique)*x0y0z0[0]+Math.sin(oblique)*x0y0z0[2],
-                            x0y0z0[1], 
-                            -Math.sin(oblique)*x0y0z0[0]+Math.cos(oblique)*x0y0z0[2] ];
-                 x1y2z1=[    Math.cos(th_dash)*x0y1z1[0]+Math.sin(th_dash)*x0y1z1[1],
-                            -Math.sin(th_dash)*x0y1z1[0]+Math.cos(th_dash)*x0y1z1[1], 
-                            x0y1z1[2] ];
-                 x1y3z2=[    Math.cos(ph_dash)*x1y2z1[0]+Math.sin(ph_dash)*x1y2z1[2],
-                            x1y2z1[1],
-                            -Math.sin(ph_dash)*x1y2z1[0]+Math.cos(ph_dash)*x1y2z1[2] ];
-                return {
-//                    name:val.name,
-                    id:val.id,
-                    anglo:val.anglo,
-                    greek:val.greek,
-                    vmag:val.vmag,
-                    spec:val.spec,
-                    decl:Math.asin(x1y3z2[2]/Math.sqrt(x1y3z2.reduce((acc,cur)=>acc+cur**2,0)))*180/Math.PI,
-                    asce:theta(x1y3z2[0],x1y3z2[1])*180/Math.PI,
-                };
-            }).sort((a,b)=>a.vmag-b.vmag);
-        }
-        const showTable=()=>{
-            const data=now.star;
-            const vmag=now.vmag;
-            elem("table").innerHTML="<tr></tr>"+data.filter(val=>val.vmag<vmag&val.decl>0).map((val,idx)=>{
-                return "<tr><td>"
-                        +"<label>"
-                            +"<input type=checkbox name=check onchange='showName();' "+(elem("check").checked?"checked":"")+">"
-                            +"<em>"+val.anglo+"</em>"
-                        +"</label>"
-                    +"</td><td>"
-                        +val.greek
-                    +"</td><td>"
-                        +val.vmag
-                    +"</td></tr>";
-            }).join("");
-            showMap();
-        }
-            /* D3.js */
-        const showMap=()=>{
-            const data=now.star;
-            const vmag=now.vmag;
-            const bool=now.bool;
-            d3.select("#map").select("svg").remove();
-            const width=600,height=600;
-            const cx=width/2,cy=height/2;
+	/* Rotation according to Location */
+		const planisphere=(date,coor)=>{
+			c_year=(date-new Date("2000-01-01T12:00:00Z"))/1000/60/60/24/36525;
+			// 自転軸の傾き y
+			oblique=0;//(84381.406-46.836768*c_year-0.00059*c_year**2+0.001813*c_year**3)/60/60/180*Math.PI;
+			// 自転 z'
+			th_dash=Math.PI+2*Math.PI*(date-new Date("2021-12-22T11:00:00Z"))/1000/60/60/24/365.2422*366.2422+coor[0]*Math.PI/180;
+			// 場所 y'
+			ph_dash=-Math.PI/180*(90-coor[1]);
+			now.star=star.map(val=>{
+				 x0y0z0=[   Math.cos(val.decl)*Math.cos(val.asce),
+							Math.cos(val.decl)*Math.sin(val.asce),
+							Math.sin(val.decl) ];
+				 x0y1z1=[   Math.cos(oblique)*x0y0z0[0]+Math.sin(oblique)*x0y0z0[2],
+							x0y0z0[1],
+							-Math.sin(oblique)*x0y0z0[0]+Math.cos(oblique)*x0y0z0[2] ];
+				 x1y2z1=[	Math.cos(th_dash)*x0y1z1[0]+Math.sin(th_dash)*x0y1z1[1],
+							-Math.sin(th_dash)*x0y1z1[0]+Math.cos(th_dash)*x0y1z1[1],
+							x0y1z1[2] ];
+				 x1y3z2=[	Math.cos(ph_dash)*x1y2z1[0]+Math.sin(ph_dash)*x1y2z1[2],
+							x1y2z1[1],
+							-Math.sin(ph_dash)*x1y2z1[0]+Math.cos(ph_dash)*x1y2z1[2] ];
+				return {
+//					name:val.name,
+					id:val.id,
+					anglo:val.anglo,
+					greek:val.greek,
+					vmag:val.vmag,
+					spec:val.spec,
+					decl:Math.asin(x1y3z2[2]/Math.sqrt(x1y3z2.reduce((acc,cur)=>acc+cur**2,0)))*180/Math.PI,
+					asce:theta(x1y3z2[0],x1y3z2[1])*180/Math.PI,
+				};
+			}).sort((a,b)=>a.vmag-b.vmag);
+		}
+		const showTable=()=>{
+			const data=now.star;
+			const vmag=now.vmag;
+			elem("table").innerHTML="<tr></tr>"+data.filter(val=>val.vmag<vmag&val.decl>0).map((val,idx)=>{
+				return "<tr><td>"
+						+"<label>"
+							+"<input type=checkbox name=check onchange='showName();' "+(elem("check").checked?"checked":"")+">"
+							+"<em>"+val.anglo+"</em>"
+						+"</label>"
+					+"</td><td>"
+						+val.greek
+					+"</td><td>"
+						+val.vmag
+					+"</td></tr>";
+			}).join("");
+			showMap();
+		}
+			/* D3.js */
+		const showMap=()=>{
+			const data=now.star;
+			const vmag=now.vmag;
+			const bool=now.bool;
+			d3.select("#map").select("svg").remove();
+			const width=600,height=600;
+			const cx=width/2,cy=height/2;
 /* svg */
-            const svg = d3.select("#map")
-                .append("svg")
-                .attr("viewBox", [0, 0, width, height])                 // viewBox
-                .attr("font-family", "sans-serif")                      // フォント
-                .attr("font-size", 10)
-                .attr("text-anchor", "middle")
-                .attr("fill", "#9baec8")
-                .style("margin", "0 0")
-                .style("display", "block");
+			const svg = d3.select("#map")
+				.append("svg")
+				.attr("viewBox", [0, 0, width, height])				 // viewBox
+				.attr("font-family", "sans-serif")					  // フォント
+				.attr("font-size", 10)
+				.attr("text-anchor", "middle")
+				.attr("fill", "#9baec8")
+				.style("margin", "0 0")
+				.style("display", "block");
 /* 投影関数 */
-            const projection = d3.geoStereographic()
-                .reflectY(true)
-                .scale((width - 60) * 0.5)
-                .clipExtent([[0, 0], [width, height]])
-                .rotate([0, -90])
-                .translate([width / 2, height / 2])
-                .precision(0.1);
-            const path = d3.geoPath(projection);
+			const projection = d3.geoStereographic()
+				.reflectY(true)
+				.scale((width - 60) * 0.5)
+				.clipExtent([[0, 0], [width, height]])
+				.rotate([0, -90])
+				.translate([width / 2, height / 2])
+				.precision(0.1);
+			const path = d3.geoPath(projection);
 /* 外周線 */
-            svg.append("path")                                          // 外周軸
-                .attr("d", path(d3.geoCircle().radius(90).center([0, 90])()))
-                .attr("fill", "#000000")
-                .attr("stroke", "#9baec8");
+			svg.append("path")										  // 外周軸
+				.attr("d", path(d3.geoCircle().radius(90).center([0, 90])()))
+				.attr("fill", "#000000")
+				.attr("stroke", "#9baec8");
 /* 軸 */
-            svg.append("path")                                          // 軸線
-                .attr("d", path(d3.geoGraticule().stepMinor([15, 10])()))
-                .attr("fill", "none")
-                .attr("stroke", "#9baec8")
-                .attr("stroke-opacity", 0.2);
+			svg.append("path")										  // 軸線
+				.attr("d", path(d3.geoGraticule().stepMinor([15, 10])()))
+				.attr("fill", "none")
+				.attr("stroke", "#9baec8")
+				.attr("stroke-opacity", 0.2);
 /* ポインタ */
-            const focusDeclination = svg.append("circle")
-                .attr("cx", cx)
-                .attr("cy", cy)
-                .attr("fill", "none")
-                .attr("stroke", "#ffffe0");
-
-            const focusRightAscension = svg.append("line")
-                .attr("x1", cx)
-                .attr("y1", cy)
-                .attr("x2", cx)
-                .attr("y2", cy)
-                .attr("stroke", "#ffffe0");
+			const focusDeclination = svg.append("circle")
+				.attr("cx", cx)
+				.attr("cy", cy)
+				.attr("fill", "none")
+				.attr("stroke", "#ffffe0");
+			const focusRightAscension = svg.append("line")
+				.attr("x1", cx)
+				.attr("y1", cy)
+				.attr("x2", cx)
+				.attr("y2", cy)
+				.attr("stroke", "#ffffe0");
 /* 散布図 */
-            const logi=x=>(1-2*Math.atan(x-vmag)/Math.PI)**3*1.8/vmag;
-            svg.append("g")                                             // 散布図
-                    .attr("stroke","#000")
-                .selectAll("circle")
-                .data(data)
-                .join("circle")
-                    .attr("fill",d=>d.spec)
-                    .attr("r",d=>logi(d.vmag))
-                    .attr("transform",d=>"translate("+projection([d.asce,d.decl])+")");
-                const arr=data.filter(val=>val.vmag<vmag&val.decl>0);
-                svg.append("g")                                             // 名前
-                    .attr("stroke","#fff")
-                    .attr("stroke-width",0.3)
-                    .attr("stroke-linejoin","round")
-                    .attr("fill","#fff")
-                .selectAll("text")
-                .data(bool.map(idx=>arr[idx]).filter((val,idx)=>idx<50))
-                .join("text")
-                    .attr("dy","-1em")
-                    .attr("font-weight","medium")
-                    .attr("font-size",d=>logi(d.vmag)*3)
-                    .text(d=>d.anglo!=""?d.anglo:d.greek)
-                    .attr("transform",d=>"translate("+projection([d.asce,d.decl])+")");
+			const logi=x=>(1-2*Math.atan(x-vmag)/Math.PI)**3*1.8/vmag;
+			svg.append("g")											 // 散布図
+					.attr("stroke","#000")
+				.selectAll("circle")
+				.data(data)
+				.join("circle")
+					.attr("fill",d=>d.spec)
+					.attr("r",d=>logi(d.vmag))
+					.attr("transform",d=>"translate("+projection([d.asce,d.decl])+")");
+				const arr=data.filter(val=>val.vmag<vmag&val.decl>0);
+				svg.append("g")											 // 名前
+					.attr("stroke","#fff")
+					.attr("stroke-width",0.3)
+					.attr("stroke-linejoin","round")
+					.attr("fill","#fff")
+				.selectAll("text")
+				.data(bool.map(idx=>arr[idx]).filter((val,idx)=>idx<50))
+				.join("text")
+					.attr("dy","-1em")
+					.attr("font-weight","medium")
+					.attr("font-size",d=>logi(d.vmag)*3)
+					.text(d=>d.anglo!=""?d.anglo:d.greek)
+					.attr("transform",d=>"translate("+projection([d.asce,d.decl])+")");
 /* 円周軸ラベル */
-            const xAxis = g => g                    // 外周軸
-                .call(g => g.append("g")
-                    .attr("stroke", "#9baec8")
-                    .selectAll("line")                  // line
-                    .data(d3.range(360))                    // 0-360
-                    .join("line")
-                    .datum(d => [
-                        projection([d, 0]),
-                        projection([d, d % 15 ? -1 : -2])   // 外周 tick y方向で定義？
-                    ])
-                    .attr("x1", ([[x1]]) => x1)
-                    .attr("x2", ([, [x2]]) => x2)
-                    .attr("y1", ([[, y1]]) => y1)
-                    .attr("y2", ([, [, y2]]) => y2))
-                .call(g => g.append("g")
-                    .selectAll("text")                  // text
-                    .data(d3.range(0, 360, 15))         // 10°刻みで文字を入れる
-                    .join("text")
-                    .attr("dy", "0.35em")
-                    .text(d =>d === 0 ? "N" 
-                            : d === 45 ? "NW"
-                            : d === 90 ? "W" 
-                            : d === 135 ? "SW"
-                            : d === 180 ? "S" 
-                            : d === 225 ? "SE"
-                            : d === 270 ? "E" 
-                            : d === 315 ? "NE"
-                            : d+"°") // 文字をどう入れるか
-                    .attr("font-size", d => d % 45 ? null : 14)             // Font-Size
-                    .attr("font-weight", d => d % 45 ? null : "bold")       // Font-Weight    
-                    .datum(d => projection([d, -4]))                        // 位置
-                    .attr("x", ([x]) => x)
-                    .attr("y", ([, y]) => y));
-            svg.append("g")
-                .call(xAxis);
+			const xAxis = g => g					// 外周軸
+				.call(g => g.append("g")
+					.attr("stroke", "#9baec8")
+					.selectAll("line")				  // line
+					.data(d3.range(360))					// 0-360
+					.join("line")
+					.datum(d => [
+						projection([d, 0]),
+						projection([d, d % 15 ? -1 : -2])   // 外周 tick y方向で定義？
+					])
+					.attr("x1", ([[x1]]) => x1)
+					.attr("x2", ([, [x2]]) => x2)
+					.attr("y1", ([[, y1]]) => y1)
+					.attr("y2", ([, [, y2]]) => y2))
+				.call(g => g.append("g")
+					.selectAll("text")				  // text
+					.data(d3.range(0, 360, 15))		 // 10°刻みで文字を入れる
+					.join("text")
+					.attr("dy", "0.35em")
+					.text(d =>d === 0 ? "N"
+							: d === 45 ? "NW"
+							: d === 90 ? "W"
+							: d === 135 ? "SW"
+							: d === 180 ? "S"
+							: d === 225 ? "SE"
+							: d === 270 ? "E"
+							: d === 315 ? "NE"
+							: d+"°") // 文字をどう入れるか
+					.attr("font-size", d => d % 45 ? null : 14)			 // Font-Size
+					.attr("font-weight", d => d % 45 ? null : "bold")	   // Font-Weight
+					.datum(d => projection([d, -4]))						// 位置
+					.attr("x", ([x]) => x)
+					.attr("y", ([, y]) => y));
+			svg.append("g")
+				.call(xAxis);
 /* 放射軸ラベル */
-            const yAxis = g => g
-                .call(g => g.append("g")
-                    .selectAll("text")                 // text
-                    .data(d3.range(30, 91, 30))        // every 10°
-                    .join("text")
-                    .attr("dy", "0.35em")
-                    .text(d => d+"°")                // テンプレート
-                    .datum(d => projection([180, d]))
-                    .attr("x", ([x]) => x)
-                    .attr("y", ([, y]) => y));
-            svg.append("g")
-                .call(yAxis);
+			const yAxis = g => g
+				.call(g => g.append("g")
+					.selectAll("text")				 // text
+					.data(d3.range(30, 91, 30))		// every 10°
+					.join("text")
+					.attr("dy", "0.35em")
+					.text(d => d+"°")				// テンプレート
+					.datum(d => projection([180, d]))
+					.attr("x", ([x]) => x)
+					.attr("y", ([, y]) => y));
+			svg.append("g")
+				.call(yAxis);
 /* Mouseover */
-            const voronoi = d3.Delaunay.from(data.filter(val=>val.vmag<vmag).map(val=>[val.asce,val.decl]).map(projection)).voronoi([0,0,width,height]);
-            const mouseovered=(event, d)=>{
-                const pxy = projection([d.asce,d.decl]);
-                const dx = pxy[0] - cx;
-                const dy = pxy[1] - cy;
-                const a = Math.atan2(dy, dx);
-                focusDeclination.attr("r", Math.hypot(dx, dy));
-                focusRightAscension.attr("x2", cx + 1e3 * Math.cos(a)).attr("y2", cy + 1e3 * Math.sin(a));
-            }
-            const mouseouted=(event, d)=>{
-                focusDeclination.attr("r", null);
-                focusRightAscension.attr("x2", cx).attr("y2", cy);
-            }            
-            svg.append("g")
-                .attr("pointer-events", "all")
-                .attr("fill", "none")
-                .selectAll("path")
-                .data(data.filter(val=>val.vmag<vmag))
-                .join("path")
-                .on("mouseover", mouseovered)
-                .on("mouseout", mouseouted)
-                .attr("d", (d, i) => voronoi.renderCell(i))
-                .append("title")
-                .text(d=>d.anglo+", "+d.greek+", "+d.vmag);
+			const voronoi = d3.Delaunay.from(data.filter(val=>val.vmag<vmag).map(val=>[val.asce,val.decl]).map(projection)).voronoi([0,0,width,height]);
+			const mouseovered=(event, d)=>{
+				const pxy = projection([d.asce,d.decl]);
+				const dx = pxy[0] - cx;
+				const dy = pxy[1] - cy;
+				const a = Math.atan2(dy, dx);
+				focusDeclination.attr("r", Math.hypot(dx, dy));
+				focusRightAscension.attr("x2", cx + 1e3 * Math.cos(a)).attr("y2", cy + 1e3 * Math.sin(a));
+			}
+			const mouseouted=(event, d)=>{
+				focusDeclination.attr("r", null);
+				focusRightAscension.attr("x2", cx).attr("y2", cy);
+			}
+			svg.append("g")
+				.attr("pointer-events", "all")
+				.attr("fill", "none")
+				.selectAll("path")
+				.data(data.filter(val=>val.vmag<vmag))
+				.join("path")
+				.on("mouseover", mouseovered)
+				.on("mouseout", mouseouted)
+				.attr("d", (d, i) => voronoi.renderCell(i))
+				.append("title")
+				.text(d=>d.anglo+", "+d.greek+", "+d.vmag);
 /* Table */
-            console.log("Refleshed");
-        };
-/* File */
-        var result,planet=[],moon=[],star=[],interval;
-        const decl=(str)=>(str[0]=="+"?1:-1)*(Number(str.slice(1,3))*Math.PI/180+Number(str.slice(3,5))*Math.PI/180/60+Number(str.slice(5,))*Math.PI/180/60/60);
-        const asce=(str)=>                   (Number(str.slice(0,2))*Math.PI/12 +Number(str.slice(2,4))*Math.PI/12 /60+Number(str.slice(4,))*Math.PI/12 /60/60);
-        const color=(spec)=>{
-            let tcp=
-                ["O","B","A","F","G","K","M"].includes(spec[0])?
-                     spec[0]=="O"?45+(45-29)-(45-29)/5*Number(spec[1])
-                    :spec[0]=="B"?29 -(29 -9.6)/10*Number(spec[1])
-                    :spec[0]=="A"?9.6-(9.6-7.2)/10*Number(spec[1])
-                    :spec[0]=="F"?7.2-(7.2-6.0)/10*Number(spec[1])
-                    :spec[0]=="G"?6.0-(6.0-5.3)/10*Number(spec[1])
-                    :spec[0]=="K"?5.3-(5.3-3.9)/10*Number(spec[1])
-                    :spec[0]=="M"?3.9-(3.9-2.4)/10*Number(spec[1])
-                    :6.5
-                :spec=="0"   ?6.5
-                :!isNaN(spec)?spec
-                :6.5;
-            tcp= tcp<4 ?4
-                :tcp<25?tcp
-                :25;
-            const x=tcp<7   ?-4.6070/tcp**3+2.9678/tcp**2+0.09911/tcp+0.244063
-                            :-2.0064/tcp**3+1.9018/tcp**2+0.24748/tcp+0.237040;
-            const y=-3.000*x**2+2.870*x-0.275;
-            const z=1-x-y;
-            const rgb=[  3.2406*x-1.5372*y-0.4986*z,
-                        -0.9689*x+1.8758*y+0.0415*z,
-                        0.0557*x-0.2040*y+1.0570*z];
-            return rgb.reduce((acc,val)=>acc+Math.round((1.055*(val/Math.max(...rgb))**(1/2.4)-0.055)*255).toString(16),"#");
-        };
-        const bsc5=(result)=>{
-            if(!Array.isArray(star)) star=[]; 
-            const english = {"alp CMa":"Sirius","alp Car":"Canopus","alp Cen":"Rigil Kentaurus & Toliman","alp Boo":"Arcturus","alp Lyr":"Vega","alp Aur":"Capella","bet Ori":"Rigel","alp CMi":"Procyon","alp Ori":"Betelgeuse","alp Eri":"Achernar",
-                "bet Cen":"Hadar","alp Aql":"Altair","alp Cru":"Acrux","alp Tau":"Aldebaran","alp Sco":"Antares","alp Vir":"Spica","bet Gem":"Pollux","alp PsA":"Fomalhaut","alp Cyg":"Deneb","bet Cru":"Mimosa","alp Leo":"Regulus","eps CMa":"Adhara",
-                "alp Gem":"Castor","lam Sco":"Shaula","gam Cru":"Gacrux","gam Ori":"Bellatrix","bet Tau":"Elnath","bet Car":"Miaplacidus","eps Ori":"Alnilam","alp Gru":"Alnair","eps UMa":"Alioth","zet Ori":"Alnitak","alp UMa":"Dubhe","alp Per":"Mirfak",
-                "gam Vel":"Regor","del CMa":"Wezen","the Sco":"Sargas","eps Sgr":"Kaus Australis","eps Car":"Avior","eta UMa":"Alkaid","bet Aur":"Menkalinan","alp Pav":"Peacock","alp TrA":"Atria","gam Gem":"Alhena","del Vel":"Alsephina","bet CMa":"Mirzam",
-                "alp Hya":"Alphard","gam Leo":"Algieba","alp Ari":"Hamal","bet Cet":"Diphda","alp UMi":"Polaris","the Cen":"Menkent","bet And":"Mirach","alp And":"Alpheratz","kap Ori":"Saiph","sig Sgr":"Nunki","alp Oph":"Rasalhague","bet UMi":"Kochab",
-                "gam And":"Almach","bet Gru":"Tiaki","bet Per":"Algol","bet Leo":"Denebola","gam Cen":"Muhlifain","lam Vel":"Suhail","zet UMa":"Mizar","gam Cyg":"Sadr","gam Dra":"Eltanin","alp Cas":"Schedar","alp CrB":"Alphecca","zet Pup":"Naos",
-                "iot Car":"Aspidiske","bet Cas":"Caph","eps Sco":"Larawag","del Sco":"Dschubba","bet UMa":"Merak","alp Phe":"Ankaa","kap Sco":"Girtab","eps Boo":"Izar","eps Peg":"Enif",
-                "del Ori":"Mintaka","bet Peg":"Scheat","eta Oph":"Sabik","gam UMa":"Phecda","eta Cma":"Aludra","alp Cep":"Alderamin","alp Peg":"Markeb","eps Cyg":"Aljanah","bet Sco":"Acrab"};
-            const letters = {alp: "α", bet: "β", gam: "γ", del: "δ", eps: "ε", zet: "ζ", eta: "η", the: "θ", iot: "ι", 
-                kap: "κ", lam: "λ", mu: "μ", nu: "ν", xi: "ξ", omi: "ο", pi: "π", rho: "ρ", sig: "σ", tau: "τ", ups: "υ", 
-                phi: "φ", chi: "χ", psi: "ψ", ome: "ω"};
-            const genitiv = {And: "Andromedae", Ant: "Antliae", Aps: "Apodis", Aqr: "Aquarii", Aql: "Aquilae", Ara: "Arae", Ari: "Arietis", Aur: "Aurigae", Boo: "Boötis", Cae: "Caeli", Cam: "Camelopardalis", Cnc: "Cancri", CVn: "Canum Venaticorum", CMa: "Canis Majoris", CMi: "Canis Minoris", Cap: "Capricorni", Car: "Carinae", Cas: "Cassiopeiae", Cen: "Centauri", Cep: "Cephei", Cet: "Ceti", Cha: "Chamaeleontis", Cir: "Circini", Col: "Columbae", Com: "Comae Berenices", CrA: "Coronae Australis", CrB: "Coronae Borealis", Crv: "Corvi", Crt: "Crateris", Cru: "Crucis", Cyg: "Cygni", Del: "Delphini", Dor: "Doradus", Dra: "Draconis", Equ: "Equulei", Eri: "Eridani", For: "Fornacis", Gem: "Geminorum", Gru: "Gruis", Her: "Herculis", Hor: "Horologii", Hya: "Hydrae", Hyi: "Hydri", Ind: "Indi", Lac: "Lacertae", Leo: "Leonis", LMi: "Leonis Minoris", Lep: "Leporis", Lib: "Librae", Lup: "Lupi", Lyn: "Lyncis", Lyr: "Lyrae", Men: "Mensae", Mic: "Microscopii", Mon: "Monocerotis", Mus: "Muscae", Nor: "Normae", Oct: "Octantis", Oph: "Ophiuchi", Ori: "Orionis", Pav: "Pavonis", Peg: "Pegasi", Per: "Persei", Phe: "Phoenicis", Pic: "Pictoris", Psc: "Piscium", PsA: "Piscis Austrini", Pup: "Puppis", Pyx: "Pyxidis", Ret: "Reticuli", Sge: "Sagittae", Sgr: "Sagittarii", Sco: "Scorpii", Scl: "Sculptoris", Sct: "Scuti", Ser: "Serpentis", Sex: "Sextantis", Tau: "Tauri", Tel: "Telescopii", Tri: "Trianguli", TrA: "Trianguli Australis", Tuc: "Tucanae", UMa: "Ursae Majoris", UMi: "Ursae Minoris", Vel: "Velorum", Vir: "Virginis", Vol: "Volantis", Vul: "Vulpeculae"};
-            const greek=(str)=>(str.includes(" ")?letters[str.split(/ +/)[0]]+" "+genitiv[str.split(/ +/)[1]]:"");
-            const anglo=(str)=>(Object.keys(english).includes(str)?english[str]:"");
-            star=star.concat(result.split("\n").filter(val=>val).map(val=>{
-                const spec_str=val.slice(127,147).replace(/ /g,"");
-                const spec_idx=spec_str.search(/[O,B,A,F,G,K,M]\d/);
-                const str=val.slice(4,14).replace(/\d/g," ").replace(/^ +/,"").replace(/ +$/,"").replace(/ +/g," ");
-                const id=str==""?"":str[0].toLowerCase()+str.substr(1,);
-                return {
-                      id:id,
-                    anglo:anglo(id),
-                    greek:greek(id),
-                    decl:decl(val.slice(83,91).replace(/ /g,"")),
-                    asce:asce(val.slice(75,83).replace(/ /g,"")),
-                    vmag:Number(val.slice(102,107).replace(/ /g,"")),
-                    spec:color(spec_str.substr(spec_idx,2)),
-                };
-            }).filter(val=>val.decl!=0||val.asce!=0).sort((a,b)=>a.vmag-b.vmag));
-        }
-		const loadFile=()=>{
-            const download=(file,name)=>{
-                const downloadLink=elem("download");
-                const blob=new Blob([JSON.stringify(file)],{type:"application/json"});
-                downloadLink.href=URL.createObjectURL(blob);
-                downloadLink.download=name+".json";
-                downloadLink.click();
-            };
-            return new Promise(resolve=>{
-                const reader=new FileReader();
-                reader.onload=(event)=>{
-                    const filename=elem("file").value;
-                    result=event.target.result;
-                    if(filename.includes("bsc5")) bsc5(result);
-                    else if(filename=="star.csv"){
-                        let star_name={};
-                        result.split("\r\n").forEach(val=>{
-                            const arr=val.split(",");
-                            star_name[arr[2]]=arr[0];
-                        });
-//                        result=star_name;
-                        download(star_name,"starname");
-                    }
-    /*
-                    else if(filename.includes(".txt")){
-                        if(filename.includes("p_elem_t1")){
-                            planet=result
-                                .replace(/\n /g,"  ")
-                                .split("\n")
-                                .slice(10,16)
-                                .map(val=>{
-                                    val=val
-                                        .split(/   * /)
-                                        .map((v,i)=>{
-                                            if(isNaN(Number(v))) return v;
-                                            else return Number(v);
-                                        });
-                                    return {
-                                        name:val[0],
-                                        unit:"century year",
-                                        a:[val[1],val[7]],
-                                        e:[val[2],val[8]],
-                                        i:[val[3]*Math.PI/180,val[9]*Math.PI/180],
-                                        l:[val[4]*Math.PI/180,val[10]*Math.PI/180],
-                                        w:[val[5]*Math.PI/180,val[11]*Math.PI/180],
-                                        o:[val[6]*Math.PI/180,val[12]*Math.PI/180],
-                                    }
-                                });
-                            time_change(new Date);
-        //                    download(planet,"planet");
-                        }else if(filename.includes("moon")){
-                            moon=result
-                                .replace(/\r\n /g," ")
-                                .replace(/..=/g,"")
-                                .replace(/2.*D\. /g,"")
-                                .replace(/ TDB /g,"")
-                                .split("\n").map(val=>{
-                                    const arr=val.split("  ");
-                                    return {
-                                        date:new Date(arr[0]),
-                                        e:Number(arr[1]),
-                                        i:Number(arr[3])*Math.PI/180,
-                                        o:Number(arr[4])*Math.PI/180,
-                                        w:Number(arr[5])*Math.PI/180,
-                                        E:Number(arr[9])*Math.PI/180,
-                                        a:Number(arr[10]),
-                                    };
-                                });
-        //                    download(moon,"moon");
-                        }
-
-                    }else if(filename.includes(".csv")){
-                        if(filename.includes("star")){
-
-                            const phi=(decl)=>{
-                                if(decl=="0") return 0;
-                                else{
-                                    const s=(decl[0]=="+"?1:-1);
-                                    const arr=decl.substr(1,).split(" ").map(val=>Number(val));
-                                    return (arr[0]*Math.PI/180+arr[1]*Math.PI/180/60+arr[2]*Math.PI/180/60/60)*s;
-                                }
-                            };
-                            const star_th=(asce)=>{
-                                if(asce=="0") return 0;
-                                else{
-                                    const arr=asce.split(" ").map(val=>Number(val));
-                                    return arr[0]*2*Math.PI/24+arr[1]*2*Math.PI/24/60+arr[2]*2*Math.PI/24/60/60;
-                                }
-                            };
-                            star=result.split("\r\n").filter(val=>val.length>0).map(val=>{
-                                val=val.split(",");
-                                return {
-                                    name:val[0],
-                                    mag:Number(val[1]),
-                                    id:val[2],
-                                    asce:star_th(val[3]),
-                                    decl:phi(val[4]),
-                                    color:color(val[5]),
-                                };
-                            });
-    //                        download(star,"star");
-                        }
-                    }else if(filename.includes(".json")){
-                        if(filename.includes("planet")) planet=JSON.parse(result);
-                        else if(filename.includes("moon")) moon=JSON.parse(result);
-                        else if(filename.includes("star")) star=JSON.parse(result);
-                    }
-    */
-                    resolve();
-                };
-                reader.readAsText(elem("file").files[0],"utf-8");
-            });
+			console.log("Refleshed");
 		};
-        const openFile=()=>{
-            fetch("./bsc5.dat").then(response=>response.text()).then(textData=>{
-            result=textData;
-                bsc5(textData);
-                changeDate(new Date);
-            }).catch(()=>console.log("Failed to fetch files."));
-        };
-        const fetchAPI=(date)=>{
-            const s_date=                            date.toISOString().replace("T"," ").replace(/:\d\d\..*Z/,"");
-            const e_date=new Date(date.valueOf()+1000*60).toISOString().replace("T"," ").replace(/:\d\d\..*Z/,"");            
-            const targets=["10","301","199","299","499","599","699"];
-            let idx=0;
-            if(interval) clearInterval(interval);
-            return new Promise(resolve=>{
-                interval=setInterval(()=>{
-                const url="https://ssd.jpl.nasa.gov/api/horizons.api"
-                    +"?format=json"
-                    +"&COMMAND='"+targets[idx]+"'"
-                    +"&OBJ_DATA='YES'"
-                    +"&MAKE_EPHEM='YES'"
-                    +"&EPHEM_TYPE='OBSERVER'"
-                    +"&CENTER='500@399'"
-                    +"&START_TIME='"+s_date+"'"
-                    +"&STOP_TIME='" +e_date+"'"
-                    +"&STEP_SIZE='1 m'";
-                console.log(7-idx);
-                idx++;
-                fetch(url).then(res=>res.json()).then(data=>{
-                    result=data.result;
-                    const arr=result.split("\n");
-                    const epharr=result.split("$$SOE")[1].split(/  */);
-                    const arr1=arr[1].split(/  */);
-                    const index=star.findIndex(v=>v.anglo==arr.find(v=>v.includes("Target body name")).split(/  */)[3]);
-                    const obj={
-                        id:arr.find(v=>v.includes("Target body name")).split(/  */)[4],
-                        anglo:arr.find(v=>v.includes("Target body name")).split(/  */)[3],
-                        greek:"",
-                        vmag:Number(epharr[27]),
-                        asce:asce(epharr.slice(3,6).join("")),
-                        decl:decl(epharr.slice(6,9).join("")),
-                        spec:"#fff",
-                    };
-                    if(index==-1) star.push(obj);
-                    else star[index]=obj;
-                });
-                if(idx>targets.length-1){
-                    console.log("finished");
-                    resolve();
-                    clearInterval(interval);
-                } 
-            },1000);
-            });
-        };
-
+/* File */
+		var result,planet=[],moon=[],star=[],interval;
+		const decl=(str)=>(str[0]=="+"?1:-1)*(Number(str.slice(1,3))*Math.PI/180+Number(str.slice(3,5))*Math.PI/180/60+Number(str.slice(5,))*Math.PI/180/60/60);
+		const asce=(str)=>				   (Number(str.slice(0,2))*Math.PI/12 +Number(str.slice(2,4))*Math.PI/12 /60+Number(str.slice(4,))*Math.PI/12 /60/60);
+		const color=(spec)=>{
+			let tcp=
+				["O","B","A","F","G","K","M"].includes(spec[0])?
+					 spec[0]=="O"?45+(45-29)-(45-29)/5*Number(spec[1])
+					:spec[0]=="B"?29 -(29 -9.6)/10*Number(spec[1])
+					:spec[0]=="A"?9.6-(9.6-7.2)/10*Number(spec[1])
+					:spec[0]=="F"?7.2-(7.2-6.0)/10*Number(spec[1])
+					:spec[0]=="G"?6.0-(6.0-5.3)/10*Number(spec[1])
+					:spec[0]=="K"?5.3-(5.3-3.9)/10*Number(spec[1])
+					:spec[0]=="M"?3.9-(3.9-2.4)/10*Number(spec[1])
+					:6.5
+				:spec=="0"   ?6.5
+				:!isNaN(spec)?spec
+				:6.5;
+			tcp= tcp<4 ?4
+				:tcp<25?tcp
+				:25;
+			const x=tcp<7   ?-4.6070/tcp**3+2.9678/tcp**2+0.09911/tcp+0.244063
+							:-2.0064/tcp**3+1.9018/tcp**2+0.24748/tcp+0.237040;
+			const y=-3.000*x**2+2.870*x-0.275;
+			const z=1-x-y;
+			const rgb=[  3.2406*x-1.5372*y-0.4986*z,
+						-0.9689*x+1.8758*y+0.0415*z,
+						0.0557*x-0.2040*y+1.0570*z];
+			return rgb.reduce((acc,val)=>acc+Math.round((1.055*(val/Math.max(...rgb))**(1/2.4)-0.055)*255).toString(16),"#");
+		};
+		const bsc5=(result)=>{
+			if(!Array.isArray(star)) star=[];
+			const english = {
+				"alp And":"Alpheratz","bet And":"Mirach","gam And":"Almach","xi And":"Adhil","ups And":"Titawin",
+				"alp Aql":"Altair","bet Aql":"Alshain","gam Aql":"Tarazed","zet Aql":"Okab","xi Aql":"Libertas",
+				"alp Aqr":"Sadalmerik","bet Aqr":"Sadalsuud","gam Aqr":"Sadachbia","del Aqr":"Skat","eps Aqr":"Albari","the Aqr":"Ancha","kap Aqr":"Situla",
+				"alp Ari":"Hamal","bet Ari":"Sheratan","gam Ari":"Mesarthim","del Ari":"Botein",
+				"alp Aur":"Capella","bet Aur":"Menkalinan","eps Aur":"Almaaz","zet Aur":"Saclateni","eta Aur":"Haedus","the Aur":"Mahasim","iot Aur":"Hassaleh",
+				"alp Boo":"Arcturus","bet Boo":"Nekkar","gam Boo":"Seginus","eps Boo":"Izar","eta Boo":"Muphrid","lam Boo":"Xuange","mu Boo":"Alkalurops",
+				"alp Cap":"Algedi","bet Cap":"Dabih","gam Cap":"Nashira","del Cap":"Deneb Algedi","nu Cap":"Alshat",
+				"alp Car":"Canopus","bet Car":"Miaplacidus","eps Car":"Avior","iot Car":"Aspidiske",
+				"alp Cas":"Schedar","bet Cas":"Caph","del Cas":"Ruchbah","zet Cas":"Fulu","eps Cas":"Segin","eta Cas":"Achird","ups Cas":"Castula",
+				"alp Cen":"Rigil Kentaurus & Toliman","bet Cen":"Hadar","gam Cen":"Muhlifain","the Cen":"Menkent",
+				"alp Cep":"Alderamin","bet Cep":"Alfirk","gam Cep":"Errai","zet Cep":"Kurhah",
+				"alp Cet":"Menkar","bet Cet":"Diphda","gam Cet":"Kaffaljidhma","zet Cet":"Baten Kaitos","omi Cet":"Mira","eta Cet":"Deneb Algenubi","iot Cet":"Deneb al Shamaliyy",
+				"alp CMa":"Sirius","bet CMa":"Mirzam","gam CMa":"Muliphein","del CMa":"Wezen","eps CMa":"Adhara","zet CMa":"Furud","eta CMa":"Aludra","sig CMa":"Unurgunite",
+				"alp CMi":"Procyon","bet CMi":"Gomeisa",
+				"alp Cnc":"Acubens","bet Cnc":"Tarf","gam Cnc":"Asellus Borealis","del Cnc":"Asellus Australis",
+				"alp Col":"Phact","bet Col":"Wezen",
+				"alp CrA":"Meridiana",
+				"alp CrB":"Alphecca","bet CrB":"Nusakan",
+				"alp Crt":"Alkes",
+				"alp Cru":"Acrux","bet Cru":"Mimosa","gam Cru":"Gacrux","del Cru":"Imai","eps Cru":"Ginan",
+				"alp Crv":"Alchiba","bet Crv":"Kraz","gam Crv":"Gienah","del Crv":"Algorab",
+				"akp CVn":"Cor Caroli","bet CVn":"Chara","gam CVn":"La Superba",
+				"alp Cyg":"Deneb","bet Cyg":"Albireo","gam Cyg":"Sadr","del Cyg":"Fawaris","eps Cyg":"Aljanah",
+				"alp Del":"Sualocin","bet Del":"Rotanev","eps Del":"Aldurfin",
+				"alp Dra":"Thuban","bet Dra":"Rastaban","gam Dra":"Eltanin","del Dra":"Altais","iot Dra":"Edasich","lam Dra":"Glausar","zet Dra":"Grumium","sig Dra":"Alsafi",
+				"alp Equ":"Kitalpha",
+				"alp Eri":"Achernar","bet Eri":"Cursa","gam Eri":"Zaurak","eps Eri":"Ran","zet Eri":"Zibal","eta Eri":"Azha","the Eri":"Acamar",
+				"alp Gem":"Castor","bet Gem":"Pollux","gam Gem":"Alhena","del Gem":"Wasat","eps Gem":"Mebsuta","zet Gem":"Mekbuda","eta Gem":"Propus",
+				"alp Gru":"Alnair","bet Gru":"Tiaki","gam Gru":"Al Dhanab",
+				"alp Her":"Rasalgethi","bet Her":"Kornephoros","del Her":"Sarin","kap Her":"Marsic","lam Her":"Maasym","ome Her":"Cujam",
+				"alp Hya":"Alphard","sig Hya":"Minchir",
+				"alp Leo":"Regulus","bet Leo":"Denebola","gam Leo":"Algieba","del Leo":"Zosma","zet Leo":"Adhafera","the Leo":"Chertan","lam Leo":"Alterf","mu Leo":"Rasalas","omi Leo":"Subra","eps Leo":"Ras Elased Australis","kap Leo":"Al Minliar al Asad",
+				"alp Lep":"Arneb","bet Lep":"Nihal",
+				"alp Lib":"Zubenelgenubi","bet Lib":"Zubeneschamali","gam Lib":"Zubenelhakrabi","sig Lib":"Brachium",
+				"alp Lyr":"Vega","bet Lyr":"Sheliak","gam Lyr":"Sulafat","eta Lyr":"Aladfar",
+				"alp Oph":"Rasalhague","bet Oph":"Cebalrai","del Oph":"Yed Prior","eps Oph":"Yed Posterior","eta Oph":"Sabik","lam Oph":"Marfik",
+				"alp Ori":"Betelgeuse","bet Ori":"Rigel","gam Ori":"Bellatrix","del Ori":"Mintaka","eps Ori":"Alnilam","zet Ori":"Alnitak","kap Ori":"Saiph","lam Ori":"Meissa",
+				"alp Pav":"Peacock",
+				"alp Peg":"Markab","bet Peg":"Scheat","gam Peg":"Algenib","eps Peg":"Enif","zet Peg":"Homam","eta Peg":"Matar","the Peg":"Biham","mu Peg":"Sadalbari",
+				"alp Per":"Mirfak","bet Per":"Algol",
+				"alp Phe":"Ankaa",
+				"alp PsA":"Fomalhaut",
+				"alp Psc":"Alrescha","bet Psc":"Fumalsamakah","zet Psc":"Revati","omi Psc":"Torcular","eta Psc":"Alpherg",
+				"zet Pup":"Naos","xi Pup":"Asmisdiske",
+				"alp Sco":"Antares","bet Sco":"Acrab","del Sco":"Dschubba","eps Sco":"Larawag","the Sco":"Sargas","kap Sco":"Girtab","lam Sco":"Shaula",
+				"alp Ser":"Unukalhai",
+				"alp Sge":"Sham",
+				"alp Sgr":"Rukbat","eps Sgr":"Kaus Australis","sig Sgr":"Nunki","zet Sgr":"Ascella","del Sgr":"Kaus Meridionalis",
+				"alp Tau":"Aldebaran","bet Tau":"Elnath",
+				"alp TrA":"Atria",
+				"alp Tri":"Mothallah",
+				"alp UMa":"Dubhe","bet UMa":"Merak","gam UMa":"Phecda","del UMa":"Megrez","eps UMa":"Alioth","zet UMa":"Mizar","eta UMa":"Alkaid",
+				"alp UMi":"Polaris","bet UMi":"Kochab","gam UMi":"Pherkad","del UMi":"Yildun",
+				"gam Vel":"Regor","del Vel":"Alsephina","lam Vel":"Suhail","kap Vel":"Markeb",
+				"alp Vir":"Spica","bet Vir":"Zavijava","gam Vir":"Porrima","del Vir":"Minelauva","eps Vir":"Vindmiatrix",
+				"alp Vul":"Anser",
+			};
+			const letters = {alp: "α", bet: "β", gam: "γ", del: "δ", eps: "ε", zet: "ζ", eta: "η", the: "θ", iot: "ι",
+				kap: "κ", lam: "λ", mu: "μ", nu: "ν", xi: "ξ", omi: "ο", pi: "π", rho: "ρ", sig: "σ", tau: "τ", ups: "υ",
+				phi: "φ", chi: "χ", psi: "ψ", ome: "ω"};
+			const genitiv = {And: "Andromedae", Ant: "Antliae", Aps: "Apodis", Aqr: "Aquarii", Aql: "Aquilae", Ara: "Arae", Ari: "Arietis",
+				Aur: "Aurigae", Boo: "Boötis", Cae: "Caeli", Cam: "Camelopardalis", Cnc: "Cancri", CVn: "Canum Venaticorum",
+				CMa: "Canis Majoris", CMi: "Canis Minoris", Cap: "Capricorni", Car: "Carinae", Cas: "Cassiopeiae", Cen: "Centauri",
+				Cep: "Cephei", Cet: "Ceti", Cha: "Chamaeleontis", Cir: "Circini", Col: "Columbae", Com: "Comae Berenices",
+				CrA: "Coronae Australis", CrB: "Coronae Borealis", Crv: "Corvi", Crt: "Crateris", Cru: "Crucis", Cyg: "Cygni",
+				Del: "Delphini", Dor: "Doradus", Dra: "Draconis", Equ: "Equulei", Eri: "Eridani", For: "Fornacis", Gem: "Geminorum",
+				Gru: "Gruis", Her: "Herculis", Hor: "Horologii", Hya: "Hydrae", Hyi: "Hydri", Ind: "Indi", Lac: "Lacertae", Leo: "Leonis",
+				LMi: "Leonis Minoris", Lep: "Leporis", Lib: "Librae", Lup: "Lupi", Lyn: "Lyncis", Lyr: "Lyrae", Men: "Mensae",
+				Mic: "Microscopii", Mon: "Monocerotis", Mus: "Muscae", Nor: "Normae", Oct: "Octantis", Oph: "Ophiuchi", Ori: "Orionis",
+				Pav: "Pavonis", Peg: "Pegasi", Per: "Persei", Phe: "Phoenicis", Pic: "Pictoris", Psc: "Piscium", PsA: "Piscis Austrini",
+				Pup: "Puppis", Pyx: "Pyxidis", Ret: "Reticuli", Sge: "Sagittae", Sgr: "Sagittarii", Sco: "Scorpii", Scl: "Sculptoris",
+				Sct: "Scuti", Ser: "Serpentis", Sex: "Sextantis", Tau: "Tauri", Tel: "Telescopii", Tri: "Trianguli",
+				TrA: "Trianguli Australis", Tuc: "Tucanae", UMa: "Ursae Majoris", UMi: "Ursae Minoris", Vel: "Velorum", Vir: "Virginis",
+				Vol: "Volantis", Vul: "Vulpeculae"};
+			const greek=(str)=>(str.includes(" ")?letters[str.split(/ +/)[0]]+" "+genitiv[str.split(/ +/)[1]]:"");
+			const anglo=(str)=>(Object.keys(english).includes(str)?english[str]:"");
+			star=star.concat(result.split("\n").filter(val=>val).map(val=>{
+				const spec_str=val.slice(127,147).replace(/ /g,"");
+				const spec_idx=spec_str.search(/[O,B,A,F,G,K,M]\d/);
+				const str=val.slice(4,14).replace(/\d/g," ").replace(/^ +/,"").replace(/ +$/,"").replace(/ +/g," ");
+				const id=str==""?"":str[0].toLowerCase()+str.substr(1,);
+				return {
+					  id:id,
+					anglo:anglo(id),
+					greek:greek(id),
+					decl:decl(val.slice(83,91).replace(/ /g,"")),
+					asce:asce(val.slice(75,83).replace(/ /g,"")),
+					vmag:Number(val.slice(102,107).replace(/ /g,"")),
+					spec:color(spec_str.substr(spec_idx,2)),
+				};
+			}).filter(val=>val.decl!=0||val.asce!=0).sort((a,b)=>a.vmag-b.vmag));
+		}
+		const loadFile=()=>{
+			const download=(file,name)=>{
+				const downloadLink=elem("download");
+				const blob=new Blob([JSON.stringify(file)],{type:"application/json"});
+				downloadLink.href=URL.createObjectURL(blob);
+				downloadLink.download=name+".json";
+				downloadLink.click();
+			};
+			return new Promise(resolve=>{
+				const reader=new FileReader();
+				reader.onload=(event)=>{
+					const filename=elem("file").value;
+					result=event.target.result;
+					if(filename.includes("bsc5")) bsc5(result);
+					else if(filename=="star.csv"){
+						let star_name={};
+						result.split("\r\n").forEach(val=>{
+							const arr=val.split(",");
+							star_name[arr[2]]=arr[0];
+						});
+//						result=star_name;
+						download(star_name,"starname");
+					}
+	/*
+					else if(filename.includes(".txt")){
+						if(filename.includes("p_elem_t1")){
+							planet=result
+								.replace(/\n /g,"  ")
+								.split("\n")
+								.slice(10,16)
+								.map(val=>{
+									val=val
+										.split(/   * /)
+										.map((v,i)=>{
+											if(isNaN(Number(v))) return v;
+											else return Number(v);
+										});
+									return {
+										name:val[0],
+										unit:"century year",
+										a:[val[1],val[7]],
+										e:[val[2],val[8]],
+										i:[val[3]*Math.PI/180,val[9]*Math.PI/180],
+										l:[val[4]*Math.PI/180,val[10]*Math.PI/180],
+										w:[val[5]*Math.PI/180,val[11]*Math.PI/180],
+										o:[val[6]*Math.PI/180,val[12]*Math.PI/180],
+									}
+								});
+							time_change(new Date);
+		//					download(planet,"planet");
+						}else if(filename.includes("moon")){
+							moon=result
+								.replace(/\r\n /g," ")
+								.replace(/..=/g,"")
+								.replace(/2.*D\. /g,"")
+								.replace(/ TDB /g,"")
+								.split("\n").map(val=>{
+									const arr=val.split("  ");
+									return {
+										date:new Date(arr[0]),
+										e:Number(arr[1]),
+										i:Number(arr[3])*Math.PI/180,
+										o:Number(arr[4])*Math.PI/180,
+										w:Number(arr[5])*Math.PI/180,
+										E:Number(arr[9])*Math.PI/180,
+										a:Number(arr[10]),
+									};
+								});
+		//					download(moon,"moon");
+						}
+					}else if(filename.includes(".csv")){
+						if(filename.includes("star")){
+							const phi=(decl)=>{
+								if(decl=="0") return 0;
+								else{
+									const s=(decl[0]=="+"?1:-1);
+									const arr=decl.substr(1,).split(" ").map(val=>Number(val));
+									return (arr[0]*Math.PI/180+arr[1]*Math.PI/180/60+arr[2]*Math.PI/180/60/60)*s;
+								}
+							};
+							const star_th=(asce)=>{
+								if(asce=="0") return 0;
+								else{
+									const arr=asce.split(" ").map(val=>Number(val));
+									return arr[0]*2*Math.PI/24+arr[1]*2*Math.PI/24/60+arr[2]*2*Math.PI/24/60/60;
+								}
+							};
+							star=result.split("\r\n").filter(val=>val.length>0).map(val=>{
+								val=val.split(",");
+								return {
+									name:val[0],
+									mag:Number(val[1]),
+									id:val[2],
+									asce:star_th(val[3]),
+									decl:phi(val[4]),
+									color:color(val[5]),
+								};
+							});
+	//						download(star,"star");
+						}
+					}else if(filename.includes(".json")){
+						if(filename.includes("planet")) planet=JSON.parse(result);
+						else if(filename.includes("moon")) moon=JSON.parse(result);
+						else if(filename.includes("star")) star=JSON.parse(result);
+					}
+	*/
+					resolve();
+				};
+				reader.readAsText(elem("file").files[0],"utf-8");
+			});
+		};
+		const openFile=()=>{
+			fetch("./bsc5.dat").then(response=>response.text()).then(textData=>{
+			result=textData;
+				bsc5(textData);
+				changeDate(new Date);
+			}).catch(()=>console.log("Failed to fetch files."));
+		};
+		const fetchAPI=(date)=>{
+			const s_date=							date.toISOString().replace("T"," ").replace(/:\d\d\..*Z/,"");
+			const e_date=new Date(date.valueOf()+1000*60).toISOString().replace("T"," ").replace(/:\d\d\..*Z/,"");
+			const targets=["10","301","199","299","499","599","699"];
+			let idx=0;
+			if(interval) clearInterval(interval);
+			return new Promise(resolve=>{
+				interval=setInterval(()=>{
+				const url="https://ssd.jpl.nasa.gov/api/horizons.api"
+					+"?format=json"
+					+"&COMMAND='"+targets[idx]+"'"
+					+"&OBJ_DATA='YES'"
+					+"&MAKE_EPHEM='YES'"
+					+"&EPHEM_TYPE='OBSERVER'"
+					+"&CENTER='500@399'"
+					+"&START_TIME='"+s_date+"'"
+					+"&STOP_TIME='" +e_date+"'"
+					+"&STEP_SIZE='1 m'";
+				console.log(7-idx);
+				idx++;
+				fetch(url).then(res=>res.json()).then(data=>{
+					result=data.result;
+					const arr=result.split("\n");
+					const epharr=result.split("$$SOE")[1].split(/  */);
+					const arr1=arr[1].split(/  */);
+					const index=star.findIndex(v=>v.anglo==arr.find(v=>v.includes("Target body name")).split(/  */)[3]);
+					const obj={
+						id:arr.find(v=>v.includes("Target body name")).split(/  */)[4],
+						anglo:arr.find(v=>v.includes("Target body name")).split(/  */)[3],
+						greek:"",
+						vmag:Number(epharr[27]),
+						asce:asce(epharr.slice(3,6).join("")),
+						decl:decl(epharr.slice(6,9).join("")),
+						spec:"#fff",
+					};
+					if(index==-1) star.push(obj);
+					else star[index]=obj;
+				});
+				if(idx>targets.length-1){
+					console.log("finished");
+					resolve();
+					clearInterval(interval);
+				}
+			},1000);
+			});
+		};
 /* Time and Location */
-        const now={
-            date:new Date,
-            coor:[35+39/60+29.1572/60/60,139+44/60+28.8869/60/60],
-            vmag:2,
-            bool:[],
-            star:[],
-        };
-        const changeTime=(num)=>{
-            now.date.setHours(now.date.getHours()+num);
-            changeDate(now.date);
-        }
-        const changeDate=(date)=>{
-            now.date=date;
-            elem("datetime").value=date.toLocaleString("ja",{
-                hour12:false,
-                year:"numeric",
-                month:"2-digit",
-                day:"2-digit",
-                hour:"2-digit",
-                minute:"2-digit",
-            }).replace(/\//g,"-").replace(" ","T");
-//            elem("date").innerText=String(date).slice(4,21);
-            planisphere(now.date,now.coor);
-            showTable();
-            fetchAPI(now.date).then(()=>{
-                planisphere(now.date,now.coor);
-                showTable();
-            }).catch(()=>console.log("API Failed"));
-        }
-        const getLocation=()=>{
-            navigator.geolocation.getCurrentPosition((pos)=>{
-                now.coor=[pos.coords.latitude,pos.coords.longitude];
-                elem("location").innerText=now.coor;
-                changeDate(new Date);
-            },(error)=>error==1?console.log("Access Denied"):console.log("Please Try Again"));
-        };
-        const showName=()=>{
-            now.bool=Array.from(document.getElementsByName("check")).map((val,idx)=>{
-                return {
-                    bool:val.checked,
-                    idx:idx,
-                };
-            }).filter(val=>val.bool).map(val=>val.idx);
-            showMap();
-        }
+		const now={
+			date:new Date,
+			coor:[35+39/60+29.1572/60/60,139+44/60+28.8869/60/60],
+			vmag:2,
+			bool:[],
+			star:[],
+		};
+		const changeTime=(num)=>{
+			now.date.setHours(now.date.getHours()+num);
+			changeDate(now.date);
+		}
+		const changeDate=(date)=>{
+			now.date=date;
+			elem("datetime").value=date.toLocaleString("ja",{
+				hour12:false,
+				year:"numeric",
+				month:"2-digit",
+				day:"2-digit",
+				hour:"2-digit",
+				minute:"2-digit",
+			}).replace(/\//g,"-").replace(" ","T");
+//			elem("date").innerText=String(date).slice(4,21);
+			planisphere(now.date,now.coor);
+			showTable();
+			fetchAPI(now.date).then(()=>{
+				planisphere(now.date,now.coor);
+				showTable();
+			}).catch(()=>console.log("API Failed"));
+		}
+		const getLocation=()=>{
+			navigator.geolocation.getCurrentPosition((pos)=>{
+				now.coor=[pos.coords.latitude,pos.coords.longitude];
+				elem("location").innerText=now.coor;
+				changeDate(new Date);
+			},(error)=>error==1?console.log("Access Denied"):console.log("Please Try Again"));
+		};
+		const showName=()=>{
+			now.bool=Array.from(document.getElementsByName("check")).map((val,idx)=>{
+				return {
+					bool:val.checked,
+					idx:idx,
+				};
+			}).filter(val=>val.bool).map(val=>val.idx);
+			showMap();
+		}
 /* Start */
-        openFile();
+		openFile();
 /* Garbage */
 /*
-    Promise.all(["star","moon","planet"].map((val,idx)=>{
-                return new Promise((resolve,reject)=>{
-                    fetch("./"+val+".json").then((response)=>response.json()).then((jsonData)=>{
-                        result[idx]=jsonData;
-                        resolve();
-                    }).catch(()=>reject())
-                });
-            })).then(()=>{
-                console.log("Success");
-                star=result[0];
-                moon=result[1];
-                planet=result[2];
-            }).catch(()=>console.log("Failed"));
+	Promise.all(["star","moon","planet"].map((val,idx)=>{
+				return new Promise((resolve,reject)=>{
+					fetch("./"+val+".json").then((response)=>response.json()).then((jsonData)=>{
+						result[idx]=jsonData;
+						resolve();
+					}).catch(()=>reject())
+				});
+			})).then(()=>{
+				console.log("Success");
+				star=result[0];
+				moon=result[1];
+				planet=result[2];
+			}).catch(()=>console.log("Failed"));
 */
 	</script>
 </html>
