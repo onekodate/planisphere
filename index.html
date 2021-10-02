@@ -565,7 +565,7 @@
 					vmag:Number(val.slice(102,107).replace(/ /g,"")),
 					spec:color(spec_str.substr(spec_idx,2)),
 				};
-			}).filter(val=>val.decl!=0||val.asce!=0).sort((a,b)=>a.vmag-b.vmag));
+			}).filter(val=>val.decl!=0||val.asce!=0));
 		}
 		const loadFile=()=>{
 			const download=(file,name)=>{
